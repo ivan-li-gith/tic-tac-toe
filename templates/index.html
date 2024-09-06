@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=\, initial-scale=1.0">
+    <title>Tic Tac Toe</title>
+    <link rel="stylesheet" href="{{url_for('static', filename='style.css')}}">
+</head>
+<body>
+    <div class="container">
+        <h1>Tic Tac Toe</h1>
+
+        <!--makes a game board with 9 different cells-->
+        <div id="game-board">
+            {% for i in range(9)%}
+                <div class="cell" id="{{i}}"></div>
+            {% endfor %}
+        </div>
+        <div id="status-message"></div>
+        <button id="restart-btn">Restart Game</button>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+
+        $(document).ready(function(){
+
+            //waits for a click. gets the number position that was clicked on and makes the move 
+            $('.cell').click(function(){
+                var position =  parseInt($(this).attr('id'))
+                makeMove(position);
+            });
+
+            updateBoard({{board | tojson}});
+
+            //provides a blank canvas whenever you reload
+            $.ajax({
+                url: '/restart',
+                method: 'POST',
+                contentType: 'application/json',
+                success: function(data){
+                    $('.cell').text('')
+                }
+            });
+        });
+
+        function makeMove(position){
+            $.ajax({
+                url: '/make_move',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({'position': position}),
+                success: function(data){
+                    if(data.status === 'success'){
+                        updateBoard(data.board)
+
+                        if(data.winner){
+                            if(data.winner == 'Tie'){
+                                $('#status-message').text('The game ended in a ' + data.winner);
+                            }else{
+                                $('#status-message').text('Winner: ' + data.winner);
+                            }
+                            highlightWinner(data.winning_combination)
+                        }
+
+                    }else{
+                        alert(data.message);
+                    }
+                }
+
+            });
+            
+        }
+
+
+        function highlightWinner(winning_combination){
+            $(".cell").removeClass('winner');
+            winningCombination.forEach(function(position){
+                $("#" + position).addClass('winner');
+            });
+        }
+
+        function updateBoard(board){
+            $(".cell").each(function(index){
+                $(this).text(board[index]);
+            });
+        }
+
+        $("#restart-btn").on('click', function(){
+            $.ajax({
+                url: '/restart',
+                method: 'POST',
+                contentType: 'application/json',
+                success: function(data){
+                    $('.cell').text('');
+                    $('.cell').removeClass('winner');
+                }
+            });
+        })
+    </script>
+    
+</body>
+</html>
